@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace GetListOfSubClasses
 {
+    /// <summary>
+    /// Some subclasses functions
+    /// </summary>
     public class SubClasses
     {
 
