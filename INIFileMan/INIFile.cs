@@ -296,7 +296,7 @@ namespace INIFileMan
             //WriteINI(Section, null, null);
         }
 
-        internal void SaveINI(bool DoSaveINI = true, bool ActionWasExecuted = true)
+        public void SaveINI(bool DoSaveINI = true, bool ActionWasExecuted = true)
         {
             if (DoSaveINI && ActionWasExecuted)
             {
