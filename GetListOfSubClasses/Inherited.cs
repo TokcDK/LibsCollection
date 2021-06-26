@@ -62,7 +62,7 @@ namespace GetListOfSubClasses
         }
 
         /// <summary>
-        /// Get all inherited classes of an abstract class
+        /// Get all interface implementstions
         /// non linq version of https://stackoverflow.com/a/5411981
         /// </summary>
         /// <typeparam name="T">type of subclasses</typeparam>
@@ -79,11 +79,6 @@ namespace GetListOfSubClasses
                     ListOfSubClasses.Add((T)Activator.CreateInstance(ClassType));
                 }
             }
-
-            //var l = AppDomain.CurrentDomain.GetAssemblies()
-            //.SelectMany(s => s.GetTypes())
-            //.Where(p => type.IsAssignableFrom(p))
-            //.ToList();
 
             return ListOfSubClasses;
         }
