@@ -74,11 +74,6 @@ namespace GetListOfSubClasses
             var type = typeof(T);
             foreach (var ClassType in type.Assembly.GetTypes())
             {
-                if (ClassType.Name.Contains("CMX"))
-                {
-
-                }
-                var b = type.IsAssignableFrom(ClassType);
                 if (ClassType.IsClass && !ClassType.IsInterface && !ClassType.IsAbstract && type.IsAssignableFrom(ClassType))
                 {
                     ListOfSubClasses.Add((T)Activator.CreateInstance(ClassType));
