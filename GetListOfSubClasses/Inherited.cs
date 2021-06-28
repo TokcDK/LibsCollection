@@ -12,28 +12,18 @@ namespace GetListOfSubClasses
     {
         /// <summary>
         /// Get all inherited classes of an abstract class
-        /// non linq a variant of https://stackoverflow.com/a/5411981
+        /// Improved non linq a variant of https://stackoverflow.com/a/5411981
         /// </summary>
         /// <typeparam name="T">type of subclass from which to search</typeparam>
-        /// <returns>List of subclasses inherited from abstract class T</returns>
-        public static List<T> GetListOfinheritedSubClasses<T>()
-        {
-            return GetListOfinheritedSubClasses<T>(null);
-        }
-
-        /// <summary>
-        /// Get all inherited classes of an abstract class
-        /// non linq a variant of https://stackoverflow.com/a/5411981
-        /// </summary>
-        /// <typeparam name="T">type of subclass from which to search</typeparam>
+        /// <param name="assembly">Specified assembly where to search</param>
         /// <param name="args">parameters required for subclass(set null if not need)</param>
         /// <returns>List of subclasses inherited from abstract class T</returns>
-        public static List<T> GetListOfinheritedSubClasses<T>(params object[] args)
+        public static List<T> GetListOfinheritedSubClasses<T>(Assembly assembly, object[] args)
         {
             var ListOfSubClasses = new List<T>();
             var type = typeof(T);
             bool noargs = args == null || args.Length == 0;
-            foreach (var ClassType in type.Assembly.GetTypes())
+            foreach (var ClassType in assembly.GetTypes())
             {
                 if (
                     !ClassType.IsClass
@@ -63,23 +53,48 @@ namespace GetListOfSubClasses
         }
 
         /// <summary>
-        /// Get all interface implementations from project where from it was called
+        /// Get all inherited classes of an abstract class from specified folder
         /// </summary>
-        /// <typeparam name="T">Interface type from which to search</typeparam>
-        /// <returns>List of interface implementations</returns>
-        public static List<T> GetListOfInterfaceImplimentations<T>()
+        /// <typeparam name="T">type of subclass from which to search</typeparam>
+        /// <param name="assemblyDir">Folder containing assembly files</param>
+        /// <param name="mask">Extension of files</param>
+        /// <returns>List of found classes of type T</returns>
+        public static List<T> GetListOfinheritedSubClasses<T>(DirectoryInfo assemblyDir, string mask = ".dll")
         {
             var ListOfSubClasses = new List<T>();
-            var type = typeof(T);
-            foreach (var ClassType in type.Assembly.GetTypes())
+            foreach (var file in assemblyDir.GetFiles("*" + mask, SearchOption.AllDirectories))
             {
-                if (ClassType.IsClass && !ClassType.IsInterface && !ClassType.IsAbstract && type.IsAssignableFrom(ClassType))
+                var sublist = GetListOfinheritedSubClasses<T>(null, Assembly.LoadFrom(file.FullName));
+
+                foreach (var record in sublist)
                 {
-                    ListOfSubClasses.Add((T)Activator.CreateInstance(ClassType));
+                    ListOfSubClasses.Add(record);
                 }
             }
 
             return ListOfSubClasses;
+        }
+
+        /// <summary>
+        /// Get all inherited classes of an abstract class
+        /// non linq a variant of https://stackoverflow.com/a/5411981
+        /// </summary>
+        /// <typeparam name="T">type of subclass from which to search</typeparam>
+        /// <param name="args">parameters required for subclass(set null if not need)</param>
+        /// <returns>List of subclasses inherited from abstract class T</returns>
+        public static List<T> GetListOfinheritedSubClasses<T>(params object[] args)
+        {
+            return GetListOfinheritedSubClasses<T>(typeof(T).Assembly, args);
+        }
+
+        /// <summary>
+        /// Get all inherited classes of an abstract class
+        /// </summary>
+        /// <typeparam name="T">type of subclass from which to search</typeparam>
+        /// <returns>List of subclasses inherited from abstract class T</returns>
+        public static List<T> GetListOfinheritedSubClasses<T>()
+        {
+            return GetListOfinheritedSubClasses<T>(null);
         }
 
         /// <summary>
@@ -94,14 +109,34 @@ namespace GetListOfSubClasses
             var ListOfSubClasses = new List<T>();
             var type = typeof(T);
 
-            foreach (var dll in Directory.GetFiles(pluginsDirPath, "*"+ extension, SearchOption.AllDirectories))
+            foreach (var dll in Directory.GetFiles(pluginsDirPath, "*" + extension, SearchOption.AllDirectories))
             {
-                foreach (var ClassType in Assembly.LoadFrom(dll).GetTypes())
+                var sublist = GetListOfInterfaceImplimentations<T>(Assembly.LoadFrom(dll));
+
+                foreach (var record in sublist)
                 {
-                    if (ClassType.IsClass && !ClassType.IsInterface && !ClassType.IsAbstract && type.IsAssignableFrom(ClassType))
-                    {
-                        ListOfSubClasses.Add((T)Activator.CreateInstance(ClassType));
-                    }
+                    ListOfSubClasses.Add(record);
+                }
+            }
+
+            return ListOfSubClasses;
+        }
+
+        /// <summary>
+        /// Get all interface implementations from project where from it was called
+        /// </summary>
+        /// <typeparam name="T">Interface type from which to search</typeparam>
+        /// <returns>List of interface implementations</returns>
+        public static List<T> GetListOfInterfaceImplimentations<T>(Assembly assembly=null)
+        {
+            var ListOfSubClasses = new List<T>();
+            var type = typeof(T);
+            assembly = assembly ?? type.Assembly;
+            foreach (var ClassType in assembly.GetTypes())
+            {
+                if (ClassType.IsClass && !ClassType.IsInterface && !ClassType.IsAbstract && type.IsAssignableFrom(ClassType))
+                {
+                    ListOfSubClasses.Add((T)Activator.CreateInstance(ClassType));
                 }
             }
 
