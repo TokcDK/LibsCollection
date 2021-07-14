@@ -21,15 +21,15 @@ namespace GetListOfSubClasses
         public static List<T> GetListOfinheritedSubClasses<T>(Assembly assembly, object[] args)
         {
             var ListOfSubClasses = new List<T>();
-            var type = typeof(T);
+            var BaseType = typeof(T);
             bool noargs = args == null || args.Length == 0;
-            foreach (var ClassType in assembly.GetTypes())
+            foreach (var selectedType in assembly.GetTypes())
             {
                 if (
-                    !ClassType.IsClass
-                    || ClassType.IsInterface
-                    || ClassType.IsAbstract
-                    || !ClassType.IsSubclassOf(type)
+                    !selectedType.IsClass
+                    || selectedType.IsInterface
+                    || selectedType.IsAbstract
+                    || !selectedType.IsSubclassOf(BaseType)
                     )
                 {
                     continue;
@@ -39,11 +39,11 @@ namespace GetListOfSubClasses
 
                 if (noargs)
                 {
-                    Instance = (T)Activator.CreateInstance(ClassType);
+                    Instance = (T)Activator.CreateInstance(selectedType);
                 }
                 else
                 {
-                    Instance = (T)Activator.CreateInstance(ClassType, args);
+                    Instance = (T)Activator.CreateInstance(selectedType, args);
                 }
 
                 ListOfSubClasses.Add(Instance);
@@ -107,15 +107,19 @@ namespace GetListOfSubClasses
         public static List<T> GetListOfInterfaceImplimentations<T>(string pluginsDirPath, string extension = ".dll")
         {
             var ListOfSubClasses = new List<T>();
-            var type = typeof(T);
-
             foreach (var dll in Directory.GetFiles(pluginsDirPath, "*" + extension, SearchOption.AllDirectories))
             {
-                var sublist = GetListOfInterfaceImplimentations<T>(Assembly.LoadFrom(dll));
-
-                foreach (var record in sublist)
+                try
                 {
-                    ListOfSubClasses.Add(record);
+                    var sublist = GetListOfInterfaceImplimentations<T>(Assembly.LoadFrom(dll));
+
+                    foreach (var record in sublist)
+                    {
+                        ListOfSubClasses.Add(record);
+                    }
+                }
+                catch
+                {
                 }
             }
 
@@ -130,13 +134,13 @@ namespace GetListOfSubClasses
         public static List<T> GetListOfInterfaceImplimentations<T>(Assembly assembly=null)
         {
             var ListOfSubClasses = new List<T>();
-            var type = typeof(T);
-            assembly = assembly ?? type.Assembly;
-            foreach (var ClassType in assembly.GetTypes())
+            var baseType = typeof(T);
+            assembly = assembly ?? baseType.Assembly;
+            foreach (var selectedType in assembly.GetTypes())
             {
-                if (ClassType.IsClass && !ClassType.IsInterface && !ClassType.IsAbstract && type.IsAssignableFrom(ClassType))
+                if (selectedType.IsClass && !selectedType.IsInterface && !selectedType.IsAbstract && baseType.IsAssignableFrom(selectedType))
                 {
-                    ListOfSubClasses.Add((T)Activator.CreateInstance(ClassType));
+                    ListOfSubClasses.Add((T)Activator.CreateInstance(selectedType));
                 }
             }
 
