@@ -42,9 +42,9 @@ namespace CheckForEmptyDir
         /// <param name="exclusions"></param>
         /// <param name="recursive"></param>
         /// <returns></returns>
-        public static bool IsNullOrEmptyDirectory(this DirectoryInfo path, string mask = "*", string[] exclusions = null, bool recursive = false, bool isSubDir = false)
+        public static bool IsNullOrEmptyDirectory(this DirectoryInfo path, string mask = "*", string[] exclusions = null, bool recursive = false, bool searchForFiles = true, bool searchForDirs = true, bool isSubDir = false)
         {
-            return path.FullName.IsNullOrEmptyDirectory(mask, exclusions, recursive, isSubDir);
+            return path.FullName.IsNullOrEmptyDirectory(mask: mask, exclusions: exclusions, recursive: recursive, searchForFiles: searchForFiles, searchForDirs: searchForDirs, isSubDir: isSubDir);
         }
 
         //info: https://stackoverflow.com/a/757925
@@ -57,7 +57,7 @@ namespace CheckForEmptyDir
         /// <param name="exclusions"></param>
         /// <param name="recursive"></param>
         /// <returns></returns>
-        public static bool IsNullOrEmptyDirectory(this string path, string mask = "*", string[] exclusions = null, bool recursive = false, bool isSubDir = false)
+        public static bool IsNullOrEmptyDirectory(this string path, string mask = "*", string[] exclusions = null, bool recursive = false, bool searchForFiles = true, bool searchForDirs = false, bool isSubDir = false)
         {
             if (!isSubDir) // make it only 1st time
             {
@@ -85,11 +85,13 @@ namespace CheckForEmptyDir
                 int skipCnt = 2; // for skip root and parent dirs without need to compare strings
                 do
                 {
+                    bool isDir;
                     if ((isSubDir && (skipCnt--) > 0) // replace of 2 checks below for . and ..
                         || (!isSubDir && findData.cFileName == "." /*root dir*/ || findData.cFileName == ".." /*parent dir*/)
                         || findData.cFileName.ContainsAnyFrom(exclusions)
-                        || (recursive && IsDir(findData.dwFileAttributes) && IsNullOrEmptyDirectory(path + Path.DirectorySeparatorChar + findData.cFileName, mask, exclusions, recursive, true))) // recursive and subfolder is empty
-                                                                                                                                                                                                  //&& mask.Length != 1 && !findData.cFileName.EndsWith(mask.Remove(0, 1), StringComparison.InvariantCultureIgnoreCase))
+                        || (((isDir = IsDir(findData.dwFileAttributes)) && searchForFiles) || (searchForDirs && !isDir)) // skip dir when need to find files or skip file when need to find dirs
+                        || (recursive && !searchForDirs && isDir && IsNullOrEmptyDirectory(path + Path.DirectorySeparatorChar + findData.cFileName, mask, exclusions, recursive, isSubDir: isSubDir))) // recursive and subfolder is empty
+                                                                                                                                                                                                       //&& mask.Length != 1 && !findData.cFileName.EndsWith(mask.Remove(0, 1), StringComparison.InvariantCultureIgnoreCase))
                     {
                         continue;
                     }
