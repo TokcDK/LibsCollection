@@ -42,7 +42,7 @@ namespace CheckForEmptyDir
         /// <param name="exclusions"></param>
         /// <param name="recursive"></param>
         /// <returns></returns>
-        public static bool IsNullOrEmptyDirectory(this DirectoryInfo path, string mask = "*", string[] exclusions = null, bool recursive = false, bool searchForFiles = true, bool searchForDirs = true, bool isSubDir = false)
+        public static bool IsNullOrEmptyDirectory(this DirectoryInfo path, string mask = "*", string[] exclusions = null, bool recursive = true, bool searchForFiles = true, bool searchForDirs = true, bool isSubDir = false)
         {
             return path.FullName.IsNullOrEmptyDirectory(mask: mask, exclusions: exclusions, recursive: recursive, searchForFiles: searchForFiles, searchForDirs: searchForDirs, isSubDir: isSubDir);
         }
@@ -57,7 +57,7 @@ namespace CheckForEmptyDir
         /// <param name="exclusions"></param>
         /// <param name="recursive"></param>
         /// <returns></returns>
-        public static bool IsNullOrEmptyDirectory(this string path, string mask = "*", string[] exclusions = null, bool recursive = false, bool searchForFiles = true, bool searchForDirs = false, bool isSubDir = false)
+        public static bool IsNullOrEmptyDirectory(this string path, string mask = "*", string[] exclusions = null, bool recursive = true, bool searchForFiles = true, bool searchForDirs = false, bool isSubDir = false, bool preciseMask = false)
         {
             if (!isSubDir) // make it only 1st time
             {
@@ -72,31 +72,40 @@ namespace CheckForEmptyDir
                 //{
                 //    return true;
                 //}
-
+                preciseMask = mask.IndexOf('*') == -1; // when searching for precise file and mask equals something like "filename.txt"
                 path = path.TrimEnd(Path.DirectorySeparatorChar);
             }
 
             var findHandle = FindFirstFile(path + Path.DirectorySeparatorChar + mask, out WIN32_FIND_DATA findData);
 
+            if (recursive && searchForFiles && findHandle == INVALID_HANDLE_VALUE) // only when recursive and search for files
+            {
+                // mask must be "*" in to not skip subfolders if search for file
+                findHandle = FindFirstFile(path + Path.DirectorySeparatorChar + "*", out findData);
+            }
+
             if (findHandle == INVALID_HANDLE_VALUE) return true;
             try
             {
                 bool empty = true;
-                int skipCnt = 2; // for skip root and parent dirs without need to compare strings
+                int skipCnt = 2; // for skip root and parent dirs without need to compare strings. for perfomance
+                bool letSkipCnt = true; // need to skip calculate skipCnt-- after skipCnt will be zero. for perfomance
+                bool findHandleControl = false;
                 do
                 {
                     bool isDir;
-                    if ((isSubDir && (skipCnt--) > 0) // replace of 2 checks below for . and ..
+                    if ((isSubDir && letSkipCnt && (letSkipCnt = (skipCnt--) > 0)) // replace of 2 checks below for . and ..
                         || (!isSubDir && findData.cFileName == "." /*root dir*/ || findData.cFileName == ".." /*parent dir*/)
                         || findData.cFileName.ContainsAnyFrom(exclusions)
-                        || (((isDir = IsDir(findData.dwFileAttributes)) && searchForFiles) || (searchForDirs && !isDir)) // skip dir when need to find files or skip file when need to find dirs
-                        || (recursive && !searchForDirs && isDir && IsNullOrEmptyDirectory(path + Path.DirectorySeparatorChar + findData.cFileName, mask, exclusions, recursive, isSubDir: isSubDir))) // recursive and subfolder is empty
-                                                                                                                                                                                                       //&& mask.Length != 1 && !findData.cFileName.EndsWith(mask.Remove(0, 1), StringComparison.InvariantCultureIgnoreCase))
+                        || (((isDir = IsDir(findData.dwFileAttributes)) && searchForFiles && !recursive) || (searchForDirs && !isDir)) // skip dir when need to find files or skip file when need to find dirs
+                        || (recursive && searchForFiles && isDir && !searchForDirs && IsNullOrEmptyDirectory(path + Path.DirectorySeparatorChar + findData.cFileName, mask, exclusions, recursive, isSubDir: true, preciseMask: preciseMask)) // recursive and subfolder is empty. only for file search
+                        || (preciseMask && ((searchForFiles && !isDir) || (searchForDirs && isDir)) && findData.cFileName != mask) // skip when mask not equals file/dir name
+                        )
                     {
                         continue;
                     }
                     empty = false;
-                } while (empty && FindNextFile(findHandle, out findData));
+                } while (empty && (findHandleControl = FindNextFile(findHandle, out findData)));
 
                 return empty;
             }
@@ -114,7 +123,7 @@ namespace CheckForEmptyDir
         /// <returns></returns>
         static bool ContainsAnyFrom(this string inputString, string[] exclusions)
         {
-            if (inputString.Length > 0 && exclusions != null)
+            if (exclusions != null && inputString.Length > 0)
             {
                 int exclusionsLength = exclusions.Length;
                 for (int i = 0; i < exclusionsLength; i++)
