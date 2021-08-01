@@ -97,7 +97,7 @@ namespace CheckForEmptyDir
                     if ((isSubDir && letSkipCnt && (letSkipCnt = (skipCnt--) > 0)) // replace of 2 checks below for . and ..
                         || (!isSubDir && findData.cFileName == "." /*root dir*/ || findData.cFileName == ".." /*parent dir*/)
                         || findData.cFileName.ContainsAnyFrom(exclusions)
-                        || (((isDir = IsDir(findData.dwFileAttributes)) && searchForFiles && !recursive) || (searchForDirs && !isDir)) // skip dir when need to find files or skip file when need to find dirs
+                        || (((isDir = IsDir(findData.dwFileAttributes)) && searchForFiles && !searchForDirs && !recursive) || (searchForDirs && !searchForFiles && !isDir)) // skip dir when need to find files or skip file when need to find dirs
                         || (recursive && searchForFiles && isDir && !searchForDirs && IsNullOrEmptyDirectory(path + Path.DirectorySeparatorChar + findData.cFileName, mask, exclusions, recursive, isSubDir: true, preciseMask: preciseMask)) // recursive and subfolder is empty. only for file search
                         || (preciseMask && ((searchForFiles && !isDir) || (searchForDirs && isDir)) && findData.cFileName != mask) // skip when mask not equals file/dir name
                         )
