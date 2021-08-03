@@ -1,5 +1,6 @@
 ﻿using IniParser;
 using IniParser.Model;
+using IniParser.Model.Configuration;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -8,13 +9,18 @@ namespace INIFileMan
 {
     public class INIFile
     {
-        //Материал: https://habr.com/ru/post/271483/
+        //some info whic was used for very first variant: https://habr.com/ru/post/271483/
 
         private readonly string iniPath; //Имя ini файла.
         private readonly FileIniDataParser INIParser;
+        /// <summary>
+        /// Configuration of ini file parser
+        /// </summary>
+        public IniParserConfiguration Configuration;
         private readonly IniData INIData;
         bool ActionWasExecuted;
 
+        //old variant code
         //[DllImport("kernel32", CharSet = CharSet.Unicode)] // Подключаем kernel32.dll и описываем его функцию WritePrivateProfilesString
         //static extern long WritePrivateProfileString(string Section, string Key, string Value, string FilePath);
 
@@ -26,11 +32,16 @@ namespace INIFileMan
         //    return INIData;
         //}
 
-        // С помощью конструктора записываем путь до файла и его имя.
+        /// <summary>
+        /// Load and manage ini file's content
+        /// </summary>
+        /// <param name="IniPath"></param>
         public INIFile(string IniPath)
         {
-            iniPath = new FileInfo(IniPath).FullName;
+            iniPath = IniPath;
             INIParser = new FileIniDataParser();
+            Configuration = INIParser.Parser.Configuration;
+            Configuration.AssigmentSpacer = ""; // no spaces before and after keyvalue splitter char
             //if (!File.Exists(Path))
             //{
             //    File.WriteAllText(Path, string.Empty);
@@ -45,8 +56,13 @@ namespace INIFileMan
             //}
         }
 
-        //Читаем ini-файл и возвращаем значение указного ключа из заданной секции.
-        public string ReadINI(string Section, string Key)
+        /// <summary>
+        /// Read value from selected key
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <param name="Key"></param>
+        /// <returns></returns>
+        public string ReadKey(string Section, string Key)
         {
             if (INIData == null)
                 return string.Empty;
@@ -88,22 +104,24 @@ namespace INIFileMan
 
         }
 
-        //Читаем ini-файл и возвращаем значение указного ключа из заданной секции.
-        public string[] ReadSectionValuesToArray(string Section)
+        /// <summary>
+        /// Will read section's values to string array
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <returns></returns>
+        public IEnumerable<string> ReadSectionValues(string Section)
         {
             if (INIData == null)
-                return null;
+                yield break;
 
             if (string.IsNullOrEmpty(Section) || !INIData.Sections.ContainsSection(Section))
             {
-                return null;
+                yield break;
             }
             else
             {
-
                 using (var sectionKeys = INIData[Section].GetEnumerator())
                 {
-                    Dictionary<int, string> SearchQueries = new Dictionary<int, string>();
 
                     for (int i = 0; i < INIData[Section].Count; i++)
                     {
@@ -111,56 +129,38 @@ namespace INIFileMan
 
                         if (sectionKeys.Current.Value.Length > 0)
                         {
-                            SearchQueries.Add(i, sectionKeys.Current.Value);
+                            yield return sectionKeys.Current.Value;
                         }
                     }
-
-                    //SearchQueries.Values.ToArray()
-                    var ret = new string[SearchQueries.Values.Count];
-                    var i1 = 0;
-                    foreach (var v in SearchQueries.Values)
-                    {
-                        ret[i1] = v;
-                        i1++;
-                    }
-
-                    return ret;
                 }
             }
         }
 
-        //Читаем ini-файл и возвращаем значение указного ключа из заданной секции.
-        public Dictionary<string, string> ReadSectionKeyValuePairsToDictionary(string Section)
+        /// <summary>
+        /// Will read section's values to string dictionary
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <returns></returns>
+        public Dictionary<string, string> ReadSectionValuesToDictionary(string Section)
         {
-            if (INIData == null)
-                return null;
+            var ret = new Dictionary<string, string>();
 
-            if (string.IsNullOrEmpty(Section) || !INIData.Sections.ContainsSection(Section))
+            int i = 0;
+            foreach (var val in ReadSectionValues(Section))
             {
-                return null;
+                ret.Add(i + "", val);
             }
-            else
-            {
-                using (var sectionKeys = INIData[Section].GetEnumerator())
-                {
-                    var SearchQueries = new Dictionary<string, string>();
 
-                    for (int i = 0; i < INIData[Section].Count; i++)
-                    {
-                        sectionKeys.MoveNext();
-
-                        if (sectionKeys.Current.Value.Length > 0)
-                        {
-                            SearchQueries.Add(sectionKeys.Current.KeyName, sectionKeys.Current.Value);
-                        }
-                    }
-
-                    return SearchQueries;
-                }
-            }
+            return ret;
         }
 
-        //Читаем ini-файл и возвращаем значение указного ключа из заданной секции.
+        /// <summary>
+        /// Change section values to selected section like "0='value0'" "1='value1'"...
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <param name="Values"></param>
+        /// <param name="CleanSectionBeforeWrite"></param>
+        /// <param name="DoSaveINI"></param>
         public void WriteArrayToSectionValues(string Section, string[] Values, bool CleanSectionBeforeWrite = true, bool DoSaveINI = true)
         {
             if (INIData == null || string.IsNullOrEmpty(Section) || Values == null || Values.Length == 0)
@@ -176,11 +176,17 @@ namespace INIFileMan
                 var v = Values[i];
                 INIData[Section][i + ""] = v;
             }
-            SaveINI(DoSaveINI, ActionWasExecuted);
+            Write(DoSaveINI, ActionWasExecuted);
         }
 
-        //Записываем в ini-файл. Запись происходит в выбранную секцию в выбранный ключ.
-        public void WriteINI(string Section, string Key, string Value, bool DoSaveINI = true)
+        /// <summary>
+        /// Set selected key's value
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <param name="Key"></param>
+        /// <param name="Value"></param>
+        /// <param name="DoSaveINI"></param>
+        public void SetKey(string Section, string Key, string Value, bool DoSaveINI = true)
         {
             if (INIData == null)
                 return;
@@ -209,7 +215,7 @@ namespace INIFileMan
                     ActionWasExecuted = true;
                 }
             }
-            SaveINI(DoSaveINI, ActionWasExecuted);
+            Write(DoSaveINI, ActionWasExecuted);
             //if (!ManageStrings.IsStringAContainsStringB(Key, "\\"))
             //{
             //    var ini = ExIni.IniFile.FromFile(Path);
@@ -234,7 +240,12 @@ namespace INIFileMan
             //WritePrivateProfileString(Section, Key, Value, Path);
         }
 
-        //Удаляем ключ из выбранной секции.
+        /// <summary>
+        /// Delet selected key
+        /// </summary>
+        /// <param name="Key"></param>
+        /// <param name="Section"></param>
+        /// <param name="DoSaveINI"></param>
         public void DeleteKey(string Key, string Section = null, bool DoSaveINI = true)
         {
             if (INIData == null)
@@ -255,7 +266,7 @@ namespace INIFileMan
                     ActionWasExecuted = true;
                 }
             }
-            SaveINI(DoSaveINI, ActionWasExecuted);
+            Write(DoSaveINI, ActionWasExecuted);
             //var ini = ExIni.IniFile.FromFile(Path);
             //var section = ini.GetSection(Section);
             //if (section != null)
@@ -272,7 +283,11 @@ namespace INIFileMan
             //}
         }
 
-        //Удаляем выбранную секцию
+        /// <summary>
+        /// Delete selected secion with all keys in it
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <param name="DoSaveINI"></param>
         public void DeleteSection(string Section/* = null*/, bool DoSaveINI = true)
         {
             if (INIData == null)
@@ -286,7 +301,7 @@ namespace INIFileMan
                 ActionWasExecuted = true;
             }
 
-            SaveINI(DoSaveINI, ActionWasExecuted);
+            Write(DoSaveINI, ActionWasExecuted);
             //var ini = ExIni.IniFile.FromFile(Path);
             //if(Section!=null && ini.HasSection(Section))
             //{
@@ -296,20 +311,29 @@ namespace INIFileMan
             //WriteINI(Section, null, null);
         }
 
-        public void SaveINI(bool DoSaveINI = true, bool ActionWasExecuted = true)
+        /// <summary>
+        /// Will write ini file
+        /// </summary>
+        /// <param name="DoSaveINI">Command to write ini</param>
+        /// <param name="ActionWasExecuted">Additional command to write ini</param>
+        public void Write(bool DoSaveINI = true, bool ActionWasExecuted = true)
         {
             if (DoSaveINI && ActionWasExecuted)
             {
-                if (Path.GetFileName(iniPath) == "AutoTranslatorConfig.ini")
-                {
-                    INIData.Configuration.AssigmentSpacer = string.Empty;
-                }
+                //if (Path.GetFileName(iniPath) == "AutoTranslatorConfig.ini")
+                //{
+                //    INIData.Configuration.AssigmentSpacer = string.Empty;
+                //}
                 //https://stackoverflow.com/questions/2502990/create-text-file-without-bom
                 INIParser.WriteFile(iniPath, INIData, new UTF8Encoding(false));
             }
         }
 
-        //Очистка выбранной секции
+        /// <summary>
+        /// Will delet section's values
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <param name="DoSaveINI"></param>
         public void ClearSection(string Section/* = null*/, bool DoSaveINI = true)
         {
             if (INIData == null)
@@ -322,7 +346,7 @@ namespace INIFileMan
                 INIData.Sections[Section].RemoveAllKeys();
                 ActionWasExecuted = true;
             }
-            SaveINI(DoSaveINI, ActionWasExecuted);
+            Write(DoSaveINI, ActionWasExecuted);
             //var ini = ExIni.IniFile.FromFile(Path);
             //if(Section!=null && ini.HasSection(Section))
             //{
@@ -332,7 +356,12 @@ namespace INIFileMan
             //WriteINI(Section, null, null);
         }
 
-        //Проверяем, есть ли такой ключ, в этой секции
+        /// <summary>
+        /// True when key exist
+        /// </summary>
+        /// <param name="Key"></param>
+        /// <param name="Section"></param>
+        /// <returns></returns>
         public bool KeyExists(string Key, string Section = null)
         {
             if (INIData == null)
@@ -363,7 +392,11 @@ namespace INIFileMan
             //return ReadINI(Section, Key).Length > 0;
         }
 
-        //Проверяем, есть ли указанная секция или любые значения в ней
+        /// <summary>
+        /// True when selected section is exists and have any keys
+        /// </summary>
+        /// <param name="Section"></param>
+        /// <returns></returns>
         public bool SectionExistsAndNotEmpty(string Section = null)
         {
             if (INIData == null)
