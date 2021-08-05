@@ -26,10 +26,10 @@ namespace CheckForEmptyDir
         }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr FindFirstFile(string lpFileName, out WIN32_FIND_DATA lpFindFileData);
+        private static extern IntPtr FindFirstFileW(string lpFileName, out WIN32_FIND_DATA lpFindFileData);
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-        private static extern bool FindNextFile(IntPtr hFindFile, out WIN32_FIND_DATA lpFindFileData);
+        private static extern bool FindNextFileW(IntPtr hFindFile, out WIN32_FIND_DATA lpFindFileData);
 
         [DllImport("kernel32.dll")]
         private static extern bool FindClose(IntPtr hFindFile);
@@ -76,12 +76,13 @@ namespace CheckForEmptyDir
                 path = path.TrimEnd(Path.DirectorySeparatorChar);
             }
 
-            var findHandle = FindFirstFile(path + Path.DirectorySeparatorChar + mask, out WIN32_FIND_DATA findData);
+            var findHandle = FindFirstFileW(path + Path.DirectorySeparatorChar + mask, out WIN32_FIND_DATA findData);
+            if (findHandle != INVALID_HANDLE_VALUE) return false;
 
             if (recursive && searchForFiles && findHandle == INVALID_HANDLE_VALUE) // only when recursive and search for files
             {
                 // mask must be "*" in to not skip subfolders if search for file
-                findHandle = FindFirstFile(path + Path.DirectorySeparatorChar + "*", out findData);
+                findHandle = FindFirstFileW(path + Path.DirectorySeparatorChar + "*", out findData);
             }
 
             if (findHandle == INVALID_HANDLE_VALUE) return true;
@@ -94,18 +95,19 @@ namespace CheckForEmptyDir
                 do
                 {
                     bool isDir;
-                    if ((isSubDir && letSkipCnt && (letSkipCnt = (skipCnt--) > 0)) // replace of 2 checks below for . and ..
-                        || (!isSubDir && findData.cFileName == "." /*root dir*/ || findData.cFileName == ".." /*parent dir*/)
-                        || findData.cFileName.ContainsAnyFrom(exclusions)
-                        || (((isDir = IsDir(findData.dwFileAttributes)) && searchForFiles && !searchForDirs && !recursive) || (searchForDirs && !searchForFiles && !isDir)) // skip dir when need to find files or skip file when need to find dirs
-                        || (recursive && searchForFiles && isDir && !searchForDirs && IsNullOrEmptyDirectory(path + Path.DirectorySeparatorChar + findData.cFileName, mask, exclusions, recursive, isSubDir: true, preciseMask: preciseMask)) // recursive and subfolder is empty. only for file search
-                        || (preciseMask && ((searchForFiles && !isDir) || (searchForDirs && isDir)) && findData.cFileName != mask) // skip when mask not equals file/dir name
+                    if (((isSubDir && letSkipCnt && (letSkipCnt = (skipCnt--) > 0))) // replace of 2 checks below for . and ..
+                        || ((!isSubDir && findData.cFileName == "." /*root dir*/ || findData.cFileName == ".." /*parent dir*/))
+                        || (findData.cFileName.ContainsAnyFrom(exclusions))
+                        || ((((isDir = IsDir(findData.dwFileAttributes)) && searchForFiles && !searchForDirs && !recursive) || (searchForDirs && !searchForFiles && !isDir))) // skip dir when need to find files or skip file when need to find dirs
+                        || ((recursive && searchForFiles && isDir && !searchForDirs && IsNullOrEmptyDirectory(path + Path.DirectorySeparatorChar + findData.cFileName, mask, exclusions, recursive, isSubDir: true, preciseMask: preciseMask))) // recursive and subfolder is empty. only for file search
+                        || (!preciseMask && recursive && searchForFiles && !isDir && !searchForDirs) // wait for possible dir to continue search in it when recursive search
+                        || ((preciseMask && ((searchForFiles && !isDir) || (searchForDirs && isDir)) && findData.cFileName != mask)) // skip when mask not equals file/dir name
                         )
                     {
                         continue;
                     }
                     empty = false;
-                } while (empty && (findHandleControl = FindNextFile(findHandle, out findData)));
+                } while (empty && (findHandleControl = FindNextFileW(findHandle, out findData)));
 
                 return empty;
             }

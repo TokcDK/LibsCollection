@@ -110,8 +110,8 @@ namespace INIFileMan
         /// <param name="Section"></param>
         /// <param name="Key"></param>
         /// <param name="Value"></param>
-        /// <param name="DoSaveINI"></param>
-        public void SetKey(string Section, string Key, string Value, bool DoSaveINI = true)
+        /// <param name="doWriteFile"></param>
+        public void SetKey(string Section, string Key, string Value, bool doWriteFile = true)
         {
             if (INIData == null)
                 return;
@@ -141,7 +141,7 @@ namespace INIFileMan
                 }
             }
 
-            Write(changed && DoSaveINI);
+            WriteFile(changed && doWriteFile);
             //if (!ManageStrings.IsStringAContainsStringB(Key, "\\"))
             //{
             //    var ini = ExIni.IniFile.FromFile(Path);
@@ -171,8 +171,8 @@ namespace INIFileMan
         /// </summary>
         /// <param name="Key"></param>
         /// <param name="Section"></param>
-        /// <param name="DoSaveINI"></param>
-        public void DeleteKey(string Key, string Section = null, bool DoSaveINI = true)
+        /// <param name="doWriteFile"></param>
+        public void DeleteKey(string Key, string Section = null, bool doWriteFile = true)
         {
             if (INIData == null)
                 return;
@@ -192,7 +192,7 @@ namespace INIFileMan
                 }
             }
 
-            Write(changed && DoSaveINI);
+            WriteFile(changed && doWriteFile);
             //var ini = ExIni.IniFile.FromFile(Path);
             //var section = ini.GetSection(Section);
             //if (section != null)
@@ -249,8 +249,8 @@ namespace INIFileMan
         /// Delete selected secion with all keys in it
         /// </summary>
         /// <param name="Section"></param>
-        /// <param name="DoSaveINI"></param>
-        public void DeleteSection(string Section/* = null*/, bool DoSaveINI = true)
+        /// <param name="doWriteFile"></param>
+        public void DeleteSection(string Section/* = null*/, bool doWriteFile = true)
         {
             if (INIData == null)
                 return;
@@ -258,7 +258,7 @@ namespace INIFileMan
             if (INIData.Sections.ContainsSection(Section))
             {
                 INIData.Sections.RemoveSection(Section);
-                Write(DoSaveINI);
+                WriteFile(doWriteFile);
             }
 
             //var ini = ExIni.IniFile.FromFile(Path);
@@ -357,8 +357,8 @@ namespace INIFileMan
         /// <param name="Section"></param>
         /// <param name="Values"></param>
         /// <param name="CleanSectionBeforeWrite"></param>
-        /// <param name="DoSaveINI"></param>
-        public void SetArrayToSectionValues(string Section, string[] Values, bool CleanSectionBeforeWrite = true, bool DoSaveINI = true)
+        /// <param name="doWriteFile"></param>
+        public void SetArrayToSectionValues(string Section, string[] Values, bool CleanSectionBeforeWrite = true, bool doWriteFile = true)
         {
             if (INIData == null || string.IsNullOrEmpty(Section) || Values == null || Values.Length == 0)
                 return;
@@ -372,17 +372,17 @@ namespace INIFileMan
             {
                 SetKey(Section, i + "", Values[i]);
             }
-            Write(DoSaveINI);
+            WriteFile(doWriteFile);
         }
 
         /// <summary>
         /// Will write ini file
         /// </summary>
-        /// <param name="DoSaveINI">Command to write ini</param>
+        /// <param name="doWriteFile">Command to write ini</param>
         /// <param name="ActionWasExecuted">Additional command to write ini</param>
-        public void Write(bool DoSaveINI = true)
+        public void WriteFile(bool doWriteFile = true)
         {
-            if (DoSaveINI)
+            if (doWriteFile)
             {
                 //if (Path.GetFileName(iniPath) == "AutoTranslatorConfig.ini")
                 //{
@@ -397,8 +397,8 @@ namespace INIFileMan
         /// Will delet section's values
         /// </summary>
         /// <param name="Section"></param>
-        /// <param name="DoSaveINI"></param>
-        public void ClearSection(string Section/* = null*/, bool DoSaveINI = true)
+        /// <param name="doWriteFile"></param>
+        public void ClearSection(string Section/* = null*/, bool doWriteFile = true)
         {
             if (INIData == null)
                 return;
@@ -406,7 +406,7 @@ namespace INIFileMan
             if (SectionExistsAndNotEmpty(Section))
             {
                 INIData.Sections[Section].RemoveAllKeys();
-                Write(DoSaveINI);
+                WriteFile(doWriteFile);
             }
             //var ini = ExIni.IniFile.FromFile(Path);
             //if(Section!=null && ini.HasSection(Section))
