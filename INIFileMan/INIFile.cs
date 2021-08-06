@@ -119,7 +119,7 @@ namespace INIFileMan
             bool changed = false;
             if (string.IsNullOrEmpty(Section))
             {
-                if (INIData.Global[Key] != Value)
+                if (!INIData.Global.ContainsKey(Key) || INIData.Global[Key] != Value)
                 {
                     INIData.Global[Key] = Value;
                     changed = true;
@@ -127,16 +127,14 @@ namespace INIFileMan
             }
             else
             {
-                bool exists;
-                if ((exists = INIData.Sections.ContainsSection(Section)) && INIData[Section][Key] != Value)
+                if (!INIData.Sections.ContainsSection(Section))
                 {
-                    if (!exists)
-                    {
-                        INIData.Sections.AddSection(Section);
-                    }
+                    INIData.Sections.AddSection(Section);
+                }
 
+                if (!INIData[Section].ContainsKey(Key) || INIData[Section][Key] != Value)
+                {
                     INIData[Section][Key] = Value;
-
                     changed = true;
                 }
             }
