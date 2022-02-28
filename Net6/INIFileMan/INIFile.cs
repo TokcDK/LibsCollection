@@ -1,8 +1,6 @@
 ﻿using IniParser;
 using IniParser.Model;
 using IniParser.Model.Configuration;
-using System.Collections.Generic;
-using System.IO;
 using System.Text;
 
 namespace INIFileMan
@@ -507,7 +505,7 @@ namespace INIFileMan
         public void SetComment(string section, string key, string comment, bool doWriteFile = true)
         {
             var keyData = new KeyData(key);
-            if(KeyExists(key, section))
+            if (KeyExists(key, section))
             {
                 keyData.Value = GetKey(section, key);
             }
