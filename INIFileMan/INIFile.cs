@@ -34,15 +34,21 @@ namespace INIFileMan
         /// <summary>
         /// Load and manage ini file's content
         /// </summary>
-        /// <param name="iniPath"></param>
-        public INIFile(string iniPath)
+        /// <param name="iniPath">Path to ini file</param>
+        /// <param name="forceCreate">Force create the ini file if missing</param>
+        public INIFile(string iniPath, bool forceCreate = false)
         {
             //if (!File.Exists(Path))
             //{
             //    File.WriteAllText(Path, string.Empty);
             //}
-            if (File.Exists(iniPath))
+            if (File.Exists(iniPath) || forceCreate)
             {
+                if(forceCreate && !File.Exists(iniPath))
+                {
+                    File.WriteAllText(iniPath, "");
+                }
+
                 this._iniPath = iniPath;
                 _INIParser = new FileIniDataParser();
                 Configuration = _INIParser.Parser.Configuration;
