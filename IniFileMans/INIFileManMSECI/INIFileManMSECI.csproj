@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFrameworks>net35;net472;netstandard1.3;.net6</TargetFrameworks>
+		<Version>1</Version>
+		<Description></Description>
+		<Authors>TokcDK</Authors>
+		<PackageTags>ini</PackageTags>
+		<PackageProjectUrl></PackageProjectUrl>
+		<PackageLicenseUrl></PackageLicenseUrl>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeDocumentationProjectOutputGroup>True</IncludeDocumentationProjectOutputGroup>
+		<DocumentationFile Condition="'$(Configuration)'=='Release'">bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+		<Deterministic>true</Deterministic>
+		<PackageId>INIFileManMSECI</PackageId>
+		<PackageReleaseNotes>
+		</PackageReleaseNotes>
+	</PropertyGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\IniFileManCore\IniFileManCore.csproj" />
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+		<PackageReference Include="Microsoft.Extensions.Configuration.Ini">
+			<Version>7.0.0</Version>
+		</PackageReference>
+	</ItemGroup>
+	<ItemGroup Condition="'$(TargetFramework)' == '.net6'">
+		<PackageReference Include="Microsoft.Extensions.Configuration.Ini">
+			<Version>7.0.0</Version>
+		</PackageReference>
+	</ItemGroup>
+</Project>

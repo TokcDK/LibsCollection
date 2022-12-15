@@ -1,18 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using IniFileManCore;
 
 namespace INIFileMan
 {
     /// <summary>
     /// Base for ini file parsers
     /// </summary>
-    public abstract class INIFileBase
+    public abstract class INIFileBase : IINIFile
     {
         /// <summary>
         /// Ini path fileinfo
         /// </summary>
-        public FileInfo INIPath { get; }
+        public abstract FileInfo INIPath { get; }
+        /// <summary>
+        /// Will load ini file
+        /// </summary>
+        public abstract void LoadFile();
+        /// <summary>
+        /// Will write ini file
+        /// </summary>
+        public abstract void WriteFile();
 
         /// <summary>
         /// Read value from selected key
@@ -100,10 +109,6 @@ namespace INIFileMan
         /// <param name="cleanSectionBeforeWrite"></param>
         public abstract void SetArrayToSectionValues(string section, string[] values, bool cleanSectionBeforeWrite = true);
 
-        /// <summary>
-        /// Will write ini file
-        /// </summary>
-        public abstract void WriteFile();
         /// <summary>
         /// Write ini file with selected encoding
         /// </summary>
