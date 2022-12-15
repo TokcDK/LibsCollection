@@ -11,25 +11,19 @@ namespace INIFileMan
     {
         //some info whic was used for very first variant: https://habr.com/ru/post/271483/
 
-        private readonly string _iniPath; //Имя ini файла.
+        private readonly FileInfo _iniPath; //Имя ini файла.
         private readonly FileIniDataParser _INIParser;
+
+        /// <summary>
+        /// Ini path fileinfo
+        /// </summary>
+        public FileInfo INIPath { get => _iniPath; }
+
         /// <summary>
         /// Configuration of ini file parser
         /// </summary>
         public IniParserConfiguration Configuration;
-        private readonly IniData _INIData;
-
-        //old variant code
-        //[DllImport("kernel32", CharSet = CharSet.Unicode)] // Подключаем kernel32.dll и описываем его функцию WritePrivateProfilesString
-        //static extern long WritePrivateProfileString(string Section, string Key, string Value, string FilePath);
-
-        //[DllImport("kernel32", CharSet = CharSet.Unicode)] // Еще раз подключаем kernel32.dll, а теперь описываем функцию GetPrivateProfileString
-        //static extern int GetPrivateProfileString(string Section, string Key, string Default, StringBuilder RetVal, int Size, string FilePath);
-
-        //public IniData GetINIData()
-        //{
-        //    return INIData;
-        //}
+        public readonly IniData INIData;
 
         /// <summary>
         /// Load and manage ini file's content
@@ -38,28 +32,18 @@ namespace INIFileMan
         /// <param name="forceCreate">Force create the ini file if missing</param>
         public INIFile(string iniPath, bool forceCreate = false)
         {
-            //if (!File.Exists(Path))
-            //{
-            //    File.WriteAllText(Path, string.Empty);
-            //}
-            if (File.Exists(iniPath) || forceCreate)
-            {
-                if(forceCreate && !File.Exists(iniPath))
-                {
-                    File.WriteAllText(iniPath, "");
-                }
+            if (!File.Exists(iniPath) 
+                && !forceCreate) return;
 
-                this._iniPath = iniPath;
-                _INIParser = new FileIniDataParser();
-                Configuration = _INIParser.Parser.Configuration;
-                Configuration.AssigmentSpacer = ""; // no spaces before and after keyvalue splitter char
+            if (forceCreate && !File.Exists(iniPath))
+                File.WriteAllText(iniPath, "");
 
-                _INIData = _INIParser.ReadFile(this._iniPath, new UTF8Encoding(false));
-            }
-            //else
-            //{
-            //    throw new FileNotFoundException();
-            //}
+            this._iniPath = new FileInfo(iniPath);
+            _INIParser = new FileIniDataParser();
+            Configuration = _INIParser.Parser.Configuration;
+            Configuration.AssigmentSpacer = ""; // no spaces before and after keyvalue splitter char
+
+            INIData = _INIParser.ReadFile(this._iniPath.FullName, new UTF8Encoding(false));
         }
 
         /// <summary>
@@ -70,44 +54,15 @@ namespace INIFileMan
         /// <returns></returns>
         public string GetKey(string section, string key)
         {
-            if (_INIData == null)
+            if (INIData == null) return string.Empty;
+
+            if (string.IsNullOrEmpty(section)) 
+                return INIData.Global[key];
+
+            if (!SectionExists(section))
                 return string.Empty;
 
-            if (string.IsNullOrEmpty(section))
-            {
-                return _INIData.Global[key];
-            }
-            else
-            {
-                if (!SectionExists(section))
-                {
-                    return string.Empty;
-                }
-                return _INIData[section][key];
-            }
-
-            //var ini = ExIni.IniFile.FromFile(Path);
-            //var section = ini.GetSection(Section);
-            //if (section == null)
-            //{
-            //    return string.Empty;
-            //}
-            //else
-            //{
-            //    var key = section.GetKey(Key);
-
-            //    if (key != null)//ExIni не умеет читать ключи с \\ в имени
-            //    {
-            //        return key.Value;
-            //    }
-            //    else
-            //    {
-            //        var RetVal = new StringBuilder(4096);
-            //        GetPrivateProfileString(Section, Key, "", RetVal, 4096, Path);//Это почему-то не может прочитать ключи из секций с определенными названиями
-            //        return RetVal.ToString();
-            //    }
-            //}
-
+            return INIData[section][key];
         }
 
         /// <summary>
@@ -119,55 +74,31 @@ namespace INIFileMan
         /// <param name="doWriteFile"></param>
         public void SetKey(string section, string key, string value, bool doWriteFile = true)
         {
-            if (_INIData == null)
-                return;
+            if (INIData == null) return;
 
             bool changed = false;
             if (string.IsNullOrEmpty(section))
             {
-                if (!_INIData.Global.ContainsKey(key) || _INIData.Global[key] != value)
+                if (!INIData.Global.ContainsKey(key) || INIData.Global[key] != value)
                 {
-                    _INIData.Global[key] = value;
+                    INIData.Global[key] = value;
                     changed = true;
                 }
             }
             else
             {
-                if (!SectionExists(section))
-                {
-                    _INIData.Sections.AddSection(section);
-                }
+                if (!SectionExists(section)) 
+                    INIData.Sections.AddSection(section);
 
-                if (!_INIData[section].ContainsKey(key) || _INIData[section][key] != value)
+                if (!INIData[section].ContainsKey(key) 
+                    || INIData[section][key] != value)
                 {
-                    _INIData[section][key] = value;
+                    INIData[section][key] = value;
                     changed = true;
                 }
             }
 
             WriteFile(changed && doWriteFile);
-            //if (!ManageStrings.IsStringAContainsStringB(Key, "\\"))
-            //{
-            //    var ini = ExIni.IniFile.FromFile(Path);
-            //    var section = ini.GetSection(Section);
-            //    if (section != null)
-            //    {
-            //        if (section.HasKey(Key))//ExIni не умеет читать ключи с \\ в имени
-            //        {
-            //            section.GetKey(Key).Value = Value;
-            //            ini.Save(Path);
-            //            return;
-            //        }
-            //        else
-            //        {
-            //            section.CreateKey(Key);
-            //            section.GetKey(Key).Value = Value;
-            //            ini.Save(Path);
-            //            return;
-            //        }
-            //    }
-            //}
-            //WritePrivateProfileString(Section, Key, Value, Path);
         }
 
         /// <summary>
@@ -179,15 +110,14 @@ namespace INIFileMan
         /// <param name="doWriteFile"></param>
         public void SetKey(string section, string key, string value, string comment, bool doWriteFile = true)
         {
-            if (_INIData == null)
-                return;
+            if (INIData == null) return;
 
             bool changed = false;
             if (string.IsNullOrEmpty(section))
             {
-                if (!_INIData.Global.ContainsKey(key) || _INIData.Global[key] != value)
+                if (!INIData.Global.ContainsKey(key) || INIData.Global[key] != value)
                 {
-                    _INIData.Global[key] = value;
+                    INIData.Global[key] = value;
                     SetComment(section, key, comment);
                     changed = true;
                 }
@@ -196,40 +126,19 @@ namespace INIFileMan
             {
                 if (!SectionExists(section))
                 {
-                    _INIData.Sections.AddSection(section);
+                    INIData.Sections.AddSection(section);
                 }
 
-                if (!_INIData[section].ContainsKey(key) || _INIData[section][key] != value)
+                if (!INIData[section].ContainsKey(key) 
+                    || INIData[section][key] != value)
                 {
-                    _INIData[section][key] = value;
+                    INIData[section][key] = value;
                     SetComment(section, key, comment);
                     changed = true;
                 }
             }
 
             WriteFile(changed && doWriteFile);
-            //if (!ManageStrings.IsStringAContainsStringB(Key, "\\"))
-            //{
-            //    var ini = ExIni.IniFile.FromFile(Path);
-            //    var section = ini.GetSection(Section);
-            //    if (section != null)
-            //    {
-            //        if (section.HasKey(Key))//ExIni не умеет читать ключи с \\ в имени
-            //        {
-            //            section.GetKey(Key).Value = Value;
-            //            ini.Save(Path);
-            //            return;
-            //        }
-            //        else
-            //        {
-            //            section.CreateKey(Key);
-            //            section.GetKey(Key).Value = Value;
-            //            ini.Save(Path);
-            //            return;
-            //        }
-            //    }
-            //}
-            //WritePrivateProfileString(Section, Key, Value, Path);
         }
 
         /// <summary>
@@ -240,39 +149,23 @@ namespace INIFileMan
         /// <param name="doWriteFile"></param>
         public void DeleteKey(string key, string section = null, bool doWriteFile = true)
         {
-            if (_INIData == null)
-                return;
+            if (INIData == null) return;
 
             bool changed = false;
             if (string.IsNullOrEmpty(section))
             {
-                _INIData.Global.RemoveKey(key);
+                INIData.Global.RemoveKey(key);
                 changed = true;
             }
             else
             {
-                if (SectionExists(section))
-                {
-                    _INIData[section].RemoveKey(key);
-                    changed = true;
-                }
+                if (!SectionExists(section)) return;
+
+                INIData[section].RemoveKey(key);
+                changed = true;
             }
 
             WriteFile(changed && doWriteFile);
-            //var ini = ExIni.IniFile.FromFile(Path);
-            //var section = ini.GetSection(Section);
-            //if (section != null)
-            //{
-            //    if (section.HasKey(Key) && !ManageStrings.IsStringAContainsStringB(Key,"\\"))//ExIni не умеет читать ключи с \\ в имени
-            //    {
-            //        section.DeleteKey(Key);
-            //        ini.Save(Path);
-            //    }
-            //    else
-            //    {
-            //        WriteINI(Section, Key, null);
-            //    }
-            //}
         }
 
         /// <summary>
@@ -283,32 +176,13 @@ namespace INIFileMan
         /// <returns></returns>
         public bool KeyExists(string key, string section = null)
         {
-            if (_INIData == null)
-                return false;
+            if (INIData == null)  return false;
 
-            if (string.IsNullOrEmpty(section))
-            {
-                return _INIData.Global.ContainsKey(key);
-            }
-            else
-            {
-                if (!SectionExists(section))
-                {
-                    return false;
-                }
-                return _INIData[section].ContainsKey(key);
-            }
-            //var iniSection = ExIni.IniFile.FromFile(Path).GetSection(Section);
-            //if (iniSection == null)
-            //{
-            //    return false;
-            //}
-            //else
-            //{
-            //    return iniSection.HasKey(Key);
-            //}
-            //MessageBox.Show("key length="+ ReadINI(Section, Key).Length);
-            //return ReadINI(Section, Key).Length > 0;
+            if (string.IsNullOrEmpty(section)) 
+                return INIData.Global.ContainsKey(key);
+
+            return SectionExists(section) 
+                && INIData[section].ContainsKey(key);
         }
 
         /// <summary>
@@ -318,22 +192,11 @@ namespace INIFileMan
         /// <param name="doWriteFile"></param>
         public void DeleteSection(string section/* = null*/, bool doWriteFile = true)
         {
-            if (_INIData == null)
-                return;
+            if (INIData == null) return;
+            if (!SectionExists(section)) return;
 
-            if (SectionExists(section))
-            {
-                _INIData.Sections.RemoveSection(section);
-                WriteFile(doWriteFile);
-            }
-
-            //var ini = ExIni.IniFile.FromFile(Path);
-            //if(Section!=null && ini.HasSection(Section))
-            //{
-            //    ExIni.IniFile.FromFile(Path).DeleteSection(Section);
-            //    ini.Save(Path);
-            //}
-            //WriteINI(Section, null, null);
+            INIData.Sections.RemoveSection(section);
+            WriteFile(doWriteFile);
         }
 
         /// <summary>
@@ -343,26 +206,20 @@ namespace INIFileMan
         /// <returns></returns>
         public IEnumerable<KeyValuePair<string, string>> GetSectionKeyValuePairs(string section)
         {
-            if (_INIData == null)
-                yield break;
+            if (INIData == null) yield break;
 
-            if (string.IsNullOrEmpty(section) || !SectionExists(section))
+            if (string.IsNullOrEmpty(section) 
+                || !SectionExists(section)) yield break;
+
+            foreach (var keyData in INIData[section])
             {
-                yield break;
-            }
-            else
-            {
-                foreach (var keyData in _INIData[section])
-                {
-                    if (!string.IsNullOrEmpty(keyData.KeyName))
-                    {
-                        yield return new KeyValuePair<string, string>
-                        (
-                            keyData.KeyName,
-                            keyData.Value
-                        );
-                    }
-                }
+                if (string.IsNullOrEmpty(keyData.KeyName)) continue;
+
+                yield return new KeyValuePair<string, string>
+                (
+                    keyData.KeyName,
+                    keyData.Value
+                );
             }
         }
 
@@ -373,7 +230,7 @@ namespace INIFileMan
         /// <returns>True when <paramref name="section"/> is exists else False</returns>
         public bool SectionExists(string section)
         {
-            return !string.IsNullOrEmpty(section) && _INIData.Sections.ContainsSection(section);
+            return !string.IsNullOrEmpty(section) && INIData.Sections.ContainsSection(section);
         }
 
         /// <summary>
@@ -384,30 +241,42 @@ namespace INIFileMan
         /// <returns></returns>
         public IEnumerable<string> GetSectionValues(string section, bool getValueElseKey = true)
         {
-            if (_INIData == null)
-                yield break;
+            if (INIData == null) yield break;
 
-            if (string.IsNullOrEmpty(section) || !SectionExists(section))
+            if (string.IsNullOrEmpty(section) || !SectionExists(section)) yield break;
+
+            foreach (var keyData in INIData[section])
             {
-                yield break;
+                if (string.IsNullOrEmpty(keyData?.KeyName)) continue;
+
+                yield return getValueElseKey ? keyData.Value : keyData.KeyName;
             }
-            else
-            {
-                foreach (var keyData in _INIData[section])
-                {
-                    if (!string.IsNullOrEmpty(keyData?.KeyName))
-                    {
-                        if (getValueElseKey)
-                        {
-                            yield return keyData.Value;
-                        }
-                        else
-                        {
-                            yield return keyData.KeyName;
-                        }
-                    }
-                }
-            }
+        }
+
+        /// <summary>
+        /// Enumerate sections of the ini
+        /// </summary>
+        /// <returns>section names</returns>
+        public IEnumerable<string> EnumerateSectionNames()
+        {
+            if (INIData == null) yield break;
+
+            foreach(var section in INIData.Sections) 
+                yield return section.SectionName;
+        }
+
+        /// <summary>
+        /// Enumerate section key names
+        /// </summary>
+        /// <param name="section"></param>
+        /// <returns>section key names</returns>
+        public IEnumerable<string> EnumerateSectionKeyNames(string section)
+        {
+            if (INIData == null) yield break;
+            if (!SectionExists(section)) yield break;
+
+            foreach(var key in INIData.Sections.GetSectionData(section).Keys) 
+                yield return key.KeyName;
         }
 
         /// <summary>
@@ -419,10 +288,8 @@ namespace INIFileMan
         {
             var ret = new Dictionary<string, string>();
 
-            foreach (var val in GetSectionKeyValuePairs(section))
-            {
+            foreach (var val in GetSectionKeyValuePairs(section)) 
                 ret.Add(val.Key, val.Value);
-            }
 
             return ret;
         }
@@ -436,18 +303,17 @@ namespace INIFileMan
         /// <param name="doWriteFile"></param>
         public void SetArrayToSectionValues(string section, string[] values, bool cleanSectionBeforeWrite = true, bool doWriteFile = true)
         {
-            if (_INIData == null || string.IsNullOrEmpty(section) || values == null || values.Length == 0)
-                return;
+            if (INIData == null) return;
+            if (string.IsNullOrEmpty(section) ) return;
+            if (values == null ) return;
+            var valuesLength = values.Length;
+            if (valuesLength == 0) return;
 
-            if (cleanSectionBeforeWrite)
-            {
-                ClearSection(section);
-            }
+            if (cleanSectionBeforeWrite) ClearSection(section);
 
-            for (int i = 0; i < values.Length; i++)
-            {
+            for (int i = 0; i < valuesLength; i++) 
                 SetKey(section, i + "", values[i]);
-            }
+
             WriteFile(doWriteFile);
         }
 
@@ -456,17 +322,12 @@ namespace INIFileMan
         /// </summary>
         /// <param name="doWriteFile">Command to write ini</param>
         /// <param name="ActionWasExecuted">Additional command to write ini</param>
-        public void WriteFile(bool doWriteFile = true)
+        public void WriteFile(bool doWriteFile = true, bool utf8NoBom = true)
         {
-            if (doWriteFile)
-            {
-                //if (Path.GetFileName(iniPath) == "AutoTranslatorConfig.ini")
-                //{
-                //    INIData.Configuration.AssigmentSpacer = string.Empty;
-                //}
-                //https://stackoverflow.com/questions/2502990/create-text-file-without-bom
-                _INIParser.WriteFile(_iniPath, _INIData, new UTF8Encoding(false));
-            }
+            if (!doWriteFile) return;
+
+            //https://stackoverflow.com/questions/2502990/create-text-file-without-bom
+            _INIParser.WriteFile(_iniPath.FullName, INIData, new UTF8Encoding(!utf8NoBom));
         }
 
         /// <summary>
@@ -476,21 +337,11 @@ namespace INIFileMan
         /// <param name="doWriteFile"></param>
         public void ClearSection(string section/* = null*/, bool doWriteFile = true)
         {
-            if (_INIData == null)
-                return;
+            if (INIData == null) return;
+            if (!SectionExistsAndNotEmpty(section)) return;
 
-            if (SectionExistsAndNotEmpty(section))
-            {
-                _INIData.Sections[section].RemoveAllKeys();
-                WriteFile(doWriteFile);
-            }
-            //var ini = ExIni.IniFile.FromFile(Path);
-            //if(Section!=null && ini.HasSection(Section))
-            //{
-            //    ExIni.IniFile.FromFile(Path).DeleteSection(Section);
-            //    ini.Save(Path);
-            //}
-            //WriteINI(Section, null, null);
+            INIData.Sections[section].RemoveAllKeys();
+            WriteFile(doWriteFile);
         }
 
         /// <summary>
@@ -500,7 +351,7 @@ namespace INIFileMan
         /// <returns></returns>
         public bool SectionExistsAndNotEmpty(string section = null)
         {
-            return SectionExists(section) && _INIData[section].Count > 0;
+            return SectionExists(section) && INIData[section].Count > 0;
         }
 
         /// <summary>
@@ -513,18 +364,14 @@ namespace INIFileMan
         public void SetComment(string section, string key, string comment, bool doWriteFile = true)
         {
             var keyData = new KeyData(key);
-            if(KeyExists(key, section))
-            {
+            if(KeyExists(key, section)) 
                 keyData.Value = GetKey(section, key);
-            }
 
             keyData.Comments.Clear();
             keyData.Comments.Add(comment);
-            _INIData.Sections[section].SetKeyData(keyData);
+            INIData.Sections[section].SetKeyData(keyData);
 
             WriteFile(doWriteFile);
         }
-
-
     }
 }
