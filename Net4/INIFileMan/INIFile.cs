@@ -36,7 +36,10 @@ namespace INIFileMan
                 && !forceCreate) return;
 
             if (forceCreate && !File.Exists(iniPath))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(iniPath));
                 File.WriteAllText(iniPath, "");
+            }
 
             this._iniPath = new FileInfo(iniPath);
             _INIParser = new FileIniDataParser();
