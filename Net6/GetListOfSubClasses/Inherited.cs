@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 
 namespace GetListOfSubClasses
 {
@@ -193,7 +196,7 @@ namespace GetListOfSubClasses
         /// </summary>
         /// <typeparam name="T">Interface type from which to search</typeparam>
         /// <returns>List of interface implementations</returns>
-        public static List<T> GetListOfInterfaceImplimentations<T>(Assembly assembly = null)
+        public static List<T> GetListOfInterfaceImplimentations<T>(Assembly assembly=null)
         {
             var ListOfSubClasses = new List<T>();
             foreach (var Instance in GetInterfaceImplimentations<T>(assembly))
@@ -209,7 +212,7 @@ namespace GetListOfSubClasses
         /// </summary>
         /// <typeparam name="T">Interface type from which to search</typeparam>
         /// <returns>List of interface implementations</returns>
-        public static IEnumerable<T> GetInterfaceImplimentations<T>(Assembly assembly = null)
+        public static IEnumerable<T> GetInterfaceImplimentations<T>(Assembly assembly=null)
         {
             var baseType = typeof(T);
             assembly = assembly ?? baseType.Assembly;
