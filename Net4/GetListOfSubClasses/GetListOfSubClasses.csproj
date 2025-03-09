@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{FD599904-9718-4FAF-A7B0-48F5D1BE39E0}</ProjectGuid>
+    <ProjectGuid>{F8DCE92F-E831-4797-884F-38686E34DBEE}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>GetListOfSubClasses</RootNamespace>

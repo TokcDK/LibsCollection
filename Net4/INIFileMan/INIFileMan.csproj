@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{40AC8009-CECD-44D0-B564-96E07237FD1A}</ProjectGuid>
+    <ProjectGuid>{5BF94FA5-1AAC-4CFD-A8DA-CD523FFBB962}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>INIFileMan</RootNamespace>

@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{636976FE-5FFE-4E17-BCB1-7B858A78A8A3}</ProjectGuid>
+    <ProjectGuid>{A814378F-EA3C-42B0-AE0C-27B85FB22359}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>CheckForEmptyDir</RootNamespace>
